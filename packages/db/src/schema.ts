@@ -20,3 +20,25 @@ export const notes = sqliteTable("notes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   text: text("text").notNull(),
 });
+
+/**
+ * One mortgage check: the documents Claude read, what the rules said, and the
+ * credit officer's decision. The structured parts are JSON text; their shapes
+ * live in @repo/services/mortgage, which is the only writer.
+ */
+export const mortgageCases = sqliteTable("mortgage_cases", {
+  applicantName: text("applicant_name").notNull(),
+  /** JSON: MortgageAssessment, findings, fixes, missing documents. */
+  checksJson: text("checks_json").notNull(),
+  createdAt: text("created_at").notNull(),
+  decidedAt: text("decided_at"),
+  /** "approved" | "rejected", set by the credit officer. */
+  decision: text("decision"),
+  decisionNote: text("decision_note"),
+  /** JSON: the Dossier Claude extracted. */
+  dossierJson: text("dossier_json").notNull(),
+  fileNames: text("file_names").notNull(),
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  /** JSON: Claude's Proposal, null until drafted. */
+  proposalJson: text("proposal_json"),
+});

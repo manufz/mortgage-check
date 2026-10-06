@@ -5,7 +5,8 @@
   "exports": {
     ".": "./src/schema.ts",
     "./notes": "./src/notes.ts",
-    "./shared": "./src/shared.ts"
+    "./shared": "./src/shared.ts",
+    "./mortgage": "./src/mortgage.ts"
   },
   "scripts": {
     "generate": "drizzle-kit generate",

@@ -34,6 +34,13 @@ export default function Header() {
           <Link
             activeProps={{ className: "nav-link is-active" }}
             className="nav-link"
+            to="/mortgage"
+          >
+            Mortgage check
+          </Link>
+          <Link
+            activeProps={{ className: "nav-link is-active" }}
+            className="nav-link"
             to="/notes"
           >
             Notes
