@@ -17,7 +17,11 @@ export interface PdfFile {
 
 const EXTRACT_PROMPT = `You are reading the mortgage dossier of one applicant at a Swiss bank. The documents are in German.
 Identify each document by its content (not its file name) and fill in the matching section of the schema. Copy numbers exactly as printed, as plain numbers in CHF without separators. Use null for a document or field that is not in the dossier. Dates as YYYY-MM-DD.
-Under observations, note anything a mortgage advisor should notice when comparing the documents with each other. Do not judge the application against any lending rules; that happens later.`;
+Under observations, note anything a mortgage advisor should notice when comparing the documents with each other. Do not judge the application against any lending rules; that happens later.
+Reply with one JSON object and nothing else, matching this JSON Schema:
+${JSON.stringify(z.toJSONSchema(dossierSchema))}`;
+
+const JSON_FENCE = /^```(?:json)?\s*|\s*```$/g;
 
 export const proposalSchema = z.object({
   conditions: z
@@ -79,16 +83,29 @@ export async function extractDossier(
     max_tokens: 16_000,
     messages: [{ content, role: "user" }],
     model: MODEL,
-    output_config: {
-      effort: "medium",
-      format: betaZodOutputFormat(dossierSchema),
-    },
+    // No strict format here: the dossier schema compiles to a grammar that
+    // the API rejects as too large, so we validate with zod instead.
+    output_config: { effort: "medium" },
   });
   ensureNotRefused(response.stop_reason);
-  if (!response.parsed_output) {
+  const text = response.content
+    .flatMap((block) => (block.type === "text" ? [block.text] : []))
+    .join("")
+    .trim()
+    .replace(JSON_FENCE, "");
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch (error) {
+    throw new Error("Claude's extraction was not valid JSON. Try again.", {
+      cause: error,
+    });
+  }
+  const parsed = dossierSchema.safeParse(json);
+  if (!parsed.success) {
     throw new Error("Claude's extraction did not match the schema.");
   }
-  return response.parsed_output;
+  return parsed.data;
 }
 
 /** Step 2: the decision proposal and the Kreditantrag, from the checked facts. */
