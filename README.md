@@ -1,134 +1,78 @@
-# Boilerplate
+# Mortgage check
 
-A [Turborepo](https://turborepo.com) monorepo, managed with Bun workspaces.
+Upload a home buyer's documents and get a credit decision you can check. Claude reads all seven PDFs at once and flags where they contradict each other. Plain, tested code applies the Swiss lending rules. Claude then drafts the credit proposal (Kreditantrag), and a credit officer makes the final call.
 
-## Apps
+**Live demo:** https://mortgage-check.mortgage-check.workers.dev/mortgage
 
-- [`apps/web`](apps/web) — the [TanStack Start](https://tanstack.com/start) front end, deployed on Cloudflare Workers, with [Cloudflare D1](https://developers.cloudflare.com/d1/) for data. See its [README](apps/web/README.md) for architecture and setup.
+![Architecture](docs/architecture.svg)
 
-There is no auth. To add it, run the `add-clerk` skill (`.claude/skills/add-clerk`).
+## Built at the Claude Opus 5.5 Build Day, Zurich
 
-## Packages
+This project was built in one evening on 6 October 2026 at the Claude Opus 5.5 Build Day Workshop in Zurich. Claude Community Zurich hosted it at SIX ConventionPoint.
 
-- [`packages/db`](packages/db) — `@repo/db`: the Drizzle schema for D1, the generated migrations, and the example `notes` table. See its [README](packages/db/README.md).
-- [`packages/services`](packages/services) — `@repo/services`: the service layer. Business rules and validation, on top of `@repo/db`. The web app calls it through [tRPC](https://trpc.io). See its [README](packages/services/README.md).
+## How it works
 
-## Start a new project
+1. **Read the dossier (Claude).** All PDFs go to `claude-opus-5-5` in one request, using native PDF input. Claude returns one JSON object covering the application form, salary certificate, tax return, debt enforcement register, pension statement, bank statement and sales documentation, plus anything else worth noticing. Zod validates the reply against the schema.
+2. **Check the numbers (code, no model).** `packages/services/src/mortgage` compares the documents with each other (income, net salary, own funds, price, pension withdrawal, debt register, names). It then applies the rule sheet, and when a rule fails it works out what would make the case pass. The numbers come from the documents, not from what the applicant claims: income from the salary certificate, own funds capped by the bank statement.
+3. **Draft the proposal (Claude).** Claude gets the extracted data, the rule results and the findings, and writes a recommendation and a one-page Kreditantrag. Strict structured output keeps the shape fixed. It may not recompute or overrule the rule engine.
+4. **Decide (a person).** The credit officer approves or rejects with a note. Every case, with its findings, proposal and decision, is stored in Cloudflare D1.
 
-You need [Bun](https://bun.sh) 1.3 or newer and [Claude Code](https://claude.com/claude-code). Deploying also needs a free [Cloudflare](https://dash.cloudflare.com/sign-up) account.
+The rules are in [docs/rule-sheet.md](docs/rule-sheet.md).
 
-1. Create your repo from the template and clone it. This makes a new private GitHub repo with a fresh history:
+## Results on the demo dossiers
 
-   ```bash
-   gh repo create my-app --template codewithpassion/cf-tanstack-boilerplate --private --clone
-   cd my-app
-   bun install
-   ```
+The three dossiers from the event are in [`apps/web/public/demo`](apps/web/public/demo). The demo buttons on `/mortgage` load them.
 
-   Without the `gh` CLI, press "Use this template" on the [template's GitHub page](https://github.com/codewithpassion/cf-tanstack-boilerplate) and clone the repo it creates.
+| Applicant | Price | Result | Why | What would fix it |
+| --- | --- | --- | --- | --- |
+| A1 Thomas Meier | CHF 900'000 | Pass | Equity 22.2%, cost 30.7% of income | Nothing |
+| A2 Nicole Baumgartner | CHF 1'100'000 | Fail | Equity from her own funds, not the pension fund, is CHF 70'000 (6.4%); 10% is required | CHF 40'000 more own funds |
+| A3 Daniel Schmid | CHF 1'250'000 | Fail | Costs need CHF 210'333 income; the salary certificate shows CHF 175'000. The application claims CHF 190'000 including a bonus the certificate does not show, which would still fail | Price at most CHF 1'106'000, or a co-borrower with CHF 35'400 income, or CHF 101'000 more equity |
 
-2. Start Claude Code in that folder and type `/project-init`. It asks for a name, renames the project to it and commits. It asks whether you want Clerk auth, then signs you in to Cloudflare, creates the D1 database, applies the migrations and does the first deploy. It asks before creating anything on your account. When it finishes you have a `https://my-app.<subdomain>.workers.dev` URL. Open `/notes` on it to check the database works.
+A3 also has a paid 2024 entry in the debt enforcement register, which the app flags as a point to clarify.
 
-3. Commit what `/project-init` left uncommitted and push. That includes the D1 `database_id` in `apps/web/wrangler.jsonc`. It is not a secret, and without it a fresh clone deploys against the `"local"` placeholder.
+## Run it
 
-4. Optional: run the `setup-previews` skill to get a preview deployment for every pull request. See [Pull request previews](#pull-request-previews).
-
-After that, deploying is two commands from `apps/web`. Run the first one only when `packages/db` has a new migration:
-
-```bash
-bunx wrangler d1 migrations apply DB --remote
-bun run deploy
-```
-
-No Claude Code? `bun .claude/skills/rename-project/rename.ts my-app` does the rename, and [Deploy](#deploy) below has the Cloudflare steps by hand.
-
-## Develop
+You need [Bun](https://bun.sh) 1.3 or newer and an [Anthropic API key](https://console.anthropic.com).
 
 ```bash
 bun install
+cp apps/web/.dev.vars.example apps/web/.dev.vars   # add ANTHROPIC_API_KEY
 bun run dev
 ```
 
-`bun run dev` applies the D1 migrations to a local database and starts the web app. The local database is SQLite, run by [Miniflare](https://developers.cloudflare.com/workers/testing/miniflare/) under the Cloudflare Vite plugin, and lives in `apps/web/.wrangler`. No account and no Docker needed. Open the Notes page to see the round trip.
+Open http://localhost:3000/mortgage. The first `bun run dev` asks before setting up the local database; if the prompt hangs, run `bunx wrangler d1 migrations apply DB --local` in `apps/web` once.
 
-Commands at the root run across all apps via [Turborepo](https://turborepo.com):
+Tests: `bun run test`. The rule engine tests reproduce the worked example and all three applicants.
 
-- `bun run dev` — start all apps in dev mode
-- `bun run build` — build all apps
-- `bun run deploy` — build and deploy all apps
-- `bun run preview` — preview production builds
-- `bun run check` / `bun run fix` — lint/format the whole repo with [Ultracite](https://ultracite.ai)
-- `bun run test` — run every workspace's tests
+### Deploy
 
-To run a command for a single app, use turbo's filter flag, e.g. `bunx turbo run dev --filter=web`, or `cd apps/web && bun run dev`.
-
-## Deploy
-
-Local development needs none of this. You only need the accounts below when you want the app running on the internet.
-
-### 1. A Cloudflare account
-
-The web app deploys to [Cloudflare Workers](https://workers.cloudflare.com). The free plan is enough. Sign in once from the terminal:
+The app runs on Cloudflare Workers with a D1 database. From `apps/web`:
 
 ```bash
-cd apps/web
 bunx wrangler login
-```
-
-If you belong to more than one Cloudflare account, `wrangler deploy` will ask which one to use; set `CLOUDFLARE_ACCOUNT_ID` in `apps/web/.env.local` to skip the prompt. The Worker's name comes from `apps/web/wrangler.jsonc` (the `rename-project` skill sets it).
-
-### 2. A D1 database
-
-The local database only exists on your machine, so a deployed Worker needs a real [D1](https://developers.cloudflare.com/d1/) database. It is on the same free plan as the Worker:
-
-```bash
-cd apps/web
-bunx wrangler d1 create boilerplate
-```
-
-That prints a `database_id`. Put it in the `d1_databases` entry in `apps/web/wrangler.jsonc`, replacing the `"local"` placeholder, then create the tables:
-
-```bash
+bunx wrangler d1 create mortgage-check     # put the id in wrangler.jsonc
 bunx wrangler d1 migrations apply DB --remote
-```
-
-Repeat the `migrations apply --remote` whenever `packages/db` gains a new migration.
-
-### 3. Ship it
-
-```bash
+bunx wrangler secret put ANTHROPIC_API_KEY
 bun run deploy
 ```
 
-That builds and runs `wrangler deploy`. The URL is printed at the end; open `/notes` on it to confirm the database binding.
+The app has no login. Anyone with the URL can run checks on your API key.
 
-## Pull request previews
+## Repository layout
 
-Every pull request can get its own copy of the app, on a URL like `https://pr-42-boilerplate-staging.<subdomain>.workers.dev`, with its own empty D1 database that has the PR's migrations applied. Pushing to the PR updates it. Closing or merging the PR deletes the preview and the database. It uses [Cloudflare Worker Previews](https://developers.cloudflare.com/workers/previews/), which is in open beta.
+- `apps/web`: the TanStack Start app on Cloudflare Workers. Pages are in `src/routes/mortgage`, and the API is tRPC over Hono. See its [README](apps/web/README.md).
+- `packages/services`: the mortgage service. `rules.ts` is the rule engine, `dossier.ts` holds the schema and the consistency checks, and `claude.ts` has the two Claude calls. See its [README](packages/services/README.md).
+- `packages/db`: the Drizzle schema and migrations for D1, including the `mortgage_cases` table. See its [README](packages/db/README.md).
+- `docs`: the rule sheet, the architecture diagram, and [notes on the boilerplate](docs/boilerplate.md) this started from.
 
-Previews are off until you set them up: run the `setup-previews` skill (`.claude/skills/setup-previews`), after the Deploy steps above. Until then the workflow skips.
+## Credits
 
-How it fits together:
+- The exercise, rule sheet and demo dossiers come from the Claude Opus 5.5 Build Day in Zurich, organized by Claude Community Zurich. All applicants, banks and properties are fictional.
+- Built on [cf-tanstack-boilerplate](https://github.com/codewithpassion/cf-tanstack-boilerplate).
+- Built with [Claude Code](https://claude.com/claude-code).
 
-- `env.staging` in `apps/web/wrangler.jsonc` is a second Worker, `boilerplate-staging`, with its own D1 database. Previews hang off it, never off production.
-- Its `previews` block holds the preview's bindings. A preview inherits none from staging, so anything missing there is `undefined` at runtime. The D1 entry holds placeholders. Never commit a real id there.
-- `.github/workflows/preview.yml` runs on every PR push. It builds with `CLOUDFLARE_ENV=staging`, then `apps/web/scripts/preview.ts deploy` finds or creates the PR's D1 database (`boilerplate-preview-pr-<N>`), applies the migrations, writes the database id into the built config in `dist/server/wrangler.json` and runs `wrangler preview`. The URL goes in a PR comment. On close, `preview.ts delete` removes both.
-- PRs from forks get no preview, because they cannot read the repo's secrets.
-
-From `apps/web`, by hand:
-
-```bash
-bun run staging:deploy          # build, migrate and deploy the staging Worker
-bun run preview:deploy pr-42    # what the workflow does on push
-bun run preview:delete pr-42    # what it does on close
-```
-
-Things to know:
-
-- Preview URLs are public unless you turn on Cloudflare Access for previews.
-- Secrets go in the preview base config: `bunx wrangler preview base-config secret put <NAME> --env staging`. A preview copies it once, when the preview is created. Existing previews keep the old values until you delete them and re-run the workflow.
-- Pass `--env staging` to every `wrangler preview` command. Without it, `preview delete` and `preview base-config` act on the production Worker.
-- Cron triggers do not fire in previews, and `wrangler tail` does not support them. Use the dashboard's observability logs.
+This is a hackathon demo, not lending or financial advice.
 
 ## License
 

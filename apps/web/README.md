@@ -1,8 +1,14 @@
-# Boilerplate
+# Web app
 
-A [TanStack Start](https://tanstack.com/start) app deployed on Cloudflare Workers, with [Hono](https://hono.dev) as the top-level `fetch` handler and [Cloudflare D1](https://developers.cloudflare.com/d1/) for data.
+The Mortgage check front end and API. A [TanStack Start](https://tanstack.com/start) app deployed on Cloudflare Workers, with [Hono](https://hono.dev) as the top-level `fetch` handler and [Cloudflare D1](https://developers.cloudflare.com/d1/) for data.
 
-There is no auth. To add it, run the `add-clerk` skill (`.claude/skills/add-clerk`).
+Pages:
+
+- `src/routes/mortgage/index.tsx` (`/mortgage`): demo buttons for the three dossiers in `public/demo`, a PDF upload, the case list and the worked example.
+- `src/routes/mortgage/$id.tsx` (`/mortgage/<id>`): the verdict, the three rule cards, the cost table, findings, fixes, the numbers Claude read, the drafted proposal and Kreditantrag, and the credit officer's decision.
+- `src/routes/notes.tsx`: the template's example page, still there to check the D1 binding.
+
+There is no auth. Anyone with the URL can run checks on the API key. To add a login, run the `add-clerk` skill (`.claude/skills/add-clerk`).
 
 ## Architecture
 
@@ -18,7 +24,7 @@ There is no auth. To add it, run the `add-clerk` skill (`.claude/skills/add-cler
 
 - `context.ts` builds `ctx` for each call: the services from [`@repo/services`](../../packages/services) on this request's `drizzle(env.DB)`, and `userId`, the signed-in user or null. With no auth, `userId` is always null. The `add-clerk` skill swaps this file for one that reads the Clerk session.
 - `init.ts` defines `publicProcedure` (anyone) and `protectedProcedure` (signed-in users only, 401 otherwise).
-- `router.ts` is the app router: `notes` (public `list` and `create`) and `me` (protected, the example).
+- `router.ts` is the app router: `mortgage` (`analyze`, `propose`, `decide`, `get`, `list`), `notes` (public `list` and `create`) and `me` (protected, the example).
 - `routers/<name>.ts` holds one router per area. Keep them thin: an input schema from the service, then one service call.
 
 `src/integrations/trpc/client.ts` exports `getTrpc()`. In the browser it is an HTTP client for `/api/trpc`. During SSR it runs the router in-process (`unstable_localLink`), so loaders do not fetch their own Worker. Call it from loaders and event handlers: `getTrpc().notes.list.query()`.
@@ -41,15 +47,16 @@ bun install
 bun run dev
 ```
 
-The database needs no configuration for local work.
+The database needs no configuration for local work. The Claude calls need `ANTHROPIC_API_KEY` in `apps/web/.dev.vars`; copy `.dev.vars.example`. That file is gitignored.
 
 ## Build & deploy
 
 The local database only exists on your machine, so the deployed Worker needs a real D1 database. Create one, put the id it prints into `d1_databases[0].database_id` in `wrangler.jsonc`, and create the tables:
 
 ```bash
-bunx wrangler d1 create boilerplate
+bunx wrangler d1 create mortgage-check
 bunx wrangler d1 migrations apply DB --remote
+bunx wrangler secret put ANTHROPIC_API_KEY
 ```
 
 Then:

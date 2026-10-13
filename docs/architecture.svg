@@ -1,0 +1,65 @@
+<svg viewBox="0 0 960 560" width="960" height="560" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#64748b"/></marker></defs>
+  <rect width="960" height="560" fill="#ffffff"/>
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">Mortgage check: architecture</text>
+  <text x="24" y="56" font-size="13" fill="#475569">Claude reads and writes. Code decides the numbers. A person makes the call.</text>
+  <rect x="24" y="90" width="170" height="330" rx="12" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="40" y="116" font-size="13" font-weight="700" fill="#0f172a">Browser</text>
+  <rect x="40" y="132" width="138" height="74" rx="8" fill="#fff" stroke="#94a3b8"/>
+  <text x="52" y="154" font-size="12" font-weight="600" fill="#0f172a">/mortgage</text>
+  <text x="52" y="172" font-size="11" fill="#475569">Demo dossiers A1-A3</text>
+  <text x="52" y="188" font-size="11" fill="#475569">or upload 7 PDFs</text>
+  <rect x="40" y="222" width="138" height="90" rx="8" fill="#fff" stroke="#94a3b8"/>
+  <text x="52" y="244" font-size="12" font-weight="600" fill="#0f172a">/mortgage/$id</text>
+  <text x="52" y="262" font-size="11" fill="#475569">Verdict, rule cards,</text>
+  <text x="52" y="278" font-size="11" fill="#475569">findings, fixes,</text>
+  <text x="52" y="294" font-size="11" fill="#475569">Kreditantrag</text>
+  <rect x="40" y="328" width="138" height="76" rx="8" fill="#fef3c7" stroke="#d97706"/>
+  <text x="52" y="350" font-size="12" font-weight="600" fill="#78350f">Credit officer</text>
+  <text x="52" y="368" font-size="11" fill="#78350f">Approve or reject</text>
+  <text x="52" y="384" font-size="11" fill="#78350f">with a note</text>
+  <rect x="226" y="90" width="500" height="440" rx="12" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="242" y="116" font-size="13" font-weight="700" fill="#0f172a">Cloudflare Worker  mortgage-check</text>
+  <text x="242" y="134" font-size="11" fill="#475569">TanStack Start + Hono + tRPC  ·  secret ANTHROPIC_API_KEY</text>
+  <rect x="242" y="150" width="468" height="34" rx="8" fill="#fff" stroke="#94a3b8"/>
+  <text x="256" y="172" font-size="12" fill="#0f172a"><tspan font-weight="600">mortgage router</tspan>  analyze · propose · decide · get · list</text>
+  <rect x="242" y="202" width="468" height="70" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <text x="256" y="224" font-size="12" font-weight="700" fill="#4c1d95">1  Read the dossier  (Claude)</text>
+  <text x="256" y="242" font-size="11" fill="#4c1d95">All PDFs in one request as document blocks. Returns JSON for the 7</text>
+  <text x="256" y="258" font-size="11" fill="#4c1d95">documents plus observations; Zod validates it against the schema.</text>
+  <rect x="242" y="286" width="468" height="94" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="256" y="308" font-size="12" font-weight="700" fill="#14532d">2  Check the numbers  (plain tested code)</text>
+  <text x="256" y="326" font-size="11" fill="#14532d">Consistency: income, net salary, own funds, price, pension, debt register, names</text>
+  <text x="256" y="342" font-size="11" fill="#14532d">Rules: equity 20%, hard equity 10%, cost (5% interest, 1% upkeep,</text>
+  <text x="256" y="358" font-size="11" fill="#14532d">amortization) at most 1/3 of verified income. Fixes by search.</text>
+  <rect x="242" y="394" width="468" height="54" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+  <text x="256" y="416" font-size="12" font-weight="700" fill="#4c1d95">3  Draft the proposal  (Claude, strict structured output)</text>
+  <text x="256" y="434" font-size="11" fill="#4c1d95">Recommendation, reasons, conditions, one-page Kreditantrag</text>
+  <rect x="242" y="462" width="468" height="52" rx="8" fill="#fef3c7" stroke="#d97706"/>
+  <text x="256" y="484" font-size="12" font-weight="700" fill="#78350f">4  Decide  (person)</text>
+  <text x="256" y="502" font-size="11" fill="#78350f">Stored with time and note. Claude never approves.</text>
+  <rect x="758" y="190" width="178" height="110" rx="12" fill="#f5f3ff" stroke="#7c3aed"/>
+  <text x="774" y="216" font-size="13" font-weight="700" fill="#4c1d95">Claude API</text>
+  <text x="774" y="236" font-size="11" fill="#4c1d95">claude-opus-5-5</text>
+  <text x="774" y="254" font-size="11" fill="#4c1d95">native PDF input</text>
+  <text x="774" y="272" font-size="11" fill="#4c1d95">server-side fallback</text>
+  <rect x="758" y="330" width="178" height="120" rx="12" fill="#eff6ff" stroke="#2563eb"/>
+  <text x="774" y="356" font-size="13" font-weight="700" fill="#1e3a8a">Cloudflare D1</text>
+  <text x="774" y="376" font-size="11" fill="#1e3a8a">table mortgage_cases</text>
+  <text x="774" y="394" font-size="11" fill="#1e3a8a">dossier · checks ·</text>
+  <text x="774" y="410" font-size="11" fill="#1e3a8a">proposal · decision</text>
+  <text x="774" y="428" font-size="11" fill="#1e3a8a">(Drizzle)</text>
+  <path d="M178 168 H238" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <path d="M238 260 H182" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <path d="M178 370 C210 370 210 488 238 488" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <path d="M476 272 V282" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M476 380 V390" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M476 448 V458" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M710 236 H754" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M710 420 C735 420 735 270 754 270" stroke="#7c3aed" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <path d="M710 488 C738 488 738 420 754 420" stroke="#2563eb" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+  <path d="M710 333 H754" stroke="#2563eb" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="758" y="492" font-size="11" fill="#475569">Live at</text>
+  <text x="758" y="508" font-size="11" fill="#475569">mortgage-check.</text>
+  <text x="758" y="524" font-size="11" fill="#475569">mortgage-check.workers.dev</text>
+</svg>
